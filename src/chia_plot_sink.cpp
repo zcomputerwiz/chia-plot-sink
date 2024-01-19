@@ -295,7 +295,7 @@ int main(int argc, char** argv) try
 						if(!g_failed_drives.count(dir) && g_num_active[dir] == 0) {
 							try {
 								const auto available = std::experimental::filesystem::space(dir).available;
-								if(available > 0 + min_free) {
+								if(available > min_free*pow(1024, 3)) {
 									dirs.emplace_back(dir, available);
 								}
 							} catch(const std::exception& ex) {
@@ -317,7 +317,7 @@ int main(int argc, char** argv) try
 							if(!g_failed_drives.count(dir) && num_active > 0 && (num_active < max_num_active || max_num_active < 0)) {
 								try {
 									const auto available = std::experimental::filesystem::space(dir).available;
-									if(available > 0 + min_free) {
+									if(available > min_free*pow(1024, 3)) {
 										tmp.emplace_back(dir, available);
 									}
 								} catch(...) {
