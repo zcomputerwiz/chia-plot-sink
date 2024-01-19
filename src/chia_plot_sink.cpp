@@ -224,11 +224,13 @@ int main(int argc, char** argv) try
 
 	int max_num_active = 1;
 	std::vector<std::string> dir_list;
+	int min_free = 0;
 
 	options.allow_unrecognised_options().add_options()(
 		"p, port", "Port to listen on (default = 1337)", cxxopts::value<int>(g_port))(
 		"r, parallel", "Maximum number of parallel copies to same drive (default = 1, infinite = -1)", cxxopts::value<int>(max_num_active))(
 		"d, destination", "List of destination folders", cxxopts::value<std::vector<std::string>>(dir_list))(
+		"b, buffer", "Buffer space in GiB to leave unfilled. Avoids trashing filesystem on Host Managed SMR disks using BTRFS (default = 0)", cxxopts::value<int>(min_free))(
 		"help", "Print help");
 
 	options.parse_positional("destination");
@@ -240,7 +242,9 @@ int main(int argc, char** argv) try
 		return 0;
 	}
 	for(const auto& dir : dir_list) {
-		std::cout << "Final Directory: " << dir << " (" << int(std::experimental::filesystem::space(dir).available / pow(1024, 3)) << " GiB free)" << std::endl;
+		std::cout << "Final Directory: " << dir << " (" << int(std::experimental::filesystem::space(dir).available / pow(1024, 3)) << " GiB free";
+		(min_free > 0) ? std::cout << "with " << min_free << " GiB reserved)" : std::cout << ")";
+		std::cout << std::endl;
 	}
 
 	// create server socket
@@ -291,7 +295,7 @@ int main(int argc, char** argv) try
 						if(!g_failed_drives.count(dir) && g_num_active[dir] == 0) {
 							try {
 								const auto available = std::experimental::filesystem::space(dir).available;
-								if(available > 0) {
+								if(available > min_free*pow(1024, 3)) {
 									dirs.emplace_back(dir, available);
 								}
 							} catch(const std::exception& ex) {
@@ -313,7 +317,7 @@ int main(int argc, char** argv) try
 							if(!g_failed_drives.count(dir) && num_active > 0 && (num_active < max_num_active || max_num_active < 0)) {
 								try {
 									const auto available = std::experimental::filesystem::space(dir).available;
-									if(available > 0) {
+									if(available > min_free*pow(1024, 3)) {
 										tmp.emplace_back(dir, available);
 									}
 								} catch(...) {
