@@ -25,15 +25,25 @@ jobs:
       run: |
         git config --global url."https://github.com/".insteadOf ssh://git@github.com/
 
+    - name: Add msbuild to PATH
+      uses: microsoft/setup-msbuild@v1.1
+      with:
+        msbuild-architecture: x64
+
+    - name: Set up MSVC Dev CMD vars
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: amd64
+
     - name: Create Build Environment
-      run: cmake -E make_directory ${{github.workspace}}\build
+      run: |
+        choco install ninja
+        cmake -E make_directory ${{github.workspace}}\build
 
     - name: Configure CMake
-      working-directory: ${{github.workspace}}\build
       run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE="Release"
 
-    - name: Build Windows binaries with make_msvc.bat
-      working-directory: ${{github.workspace}}\build
+    - name: Build Windows binaries
       run: |
         cmake --build build -- -k0
         ls ${{ github.workspace }}\build\
@@ -41,8 +51,8 @@ jobs:
     - name: Upload Windows binaries to artifacts
       uses: actions/upload-artifact@v2.2.2
       with:
-        name: chia-plot-sink.exe
-        path: ${{ github.workspace }}\build\
+        name: chia-plot-sink
+        path: ${{ github.workspace }}\build\chia_plot_sink.exe
 
     - name: Get tag name
       if: startsWith(github.ref, 'refs/tags/')
